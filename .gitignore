@@ -1,0 +1,12 @@
+node_modules/
+.env
+uploads/
+
+# Logs
+*.log
+
+# Editor
+.vscode/
+
+# Test coverage
+coverage/
