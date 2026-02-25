@@ -28,7 +28,7 @@ app.get("/db-health", async (req, res) => {
   }
 })
 
-app.get("/health", (req, res) => res.json({ ok: true, name: "partnex-backend" }));
+app.get("/", (req, res) => res.json({ ok: true, name: "partnex-backend" }));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/sme", smeRoutes);
