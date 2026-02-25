@@ -55,3 +55,31 @@ CREATE TABLE IF NOT EXISTS sme_scores (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (sme_id) REFERENCES smes(id)
 );
+
+-- 4) SME financial summary (AI model inputs)
+CREATE TABLE IF NOT EXISTS sme_financial_summary (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  sme_id BIGINT NOT NULL,
+
+  revenue DECIMAL(15,2) NOT NULL,
+  expenses DECIMAL(15,2) NOT NULL,
+  debt DECIMAL(15,2) NOT NULL,
+  revenue_growth DECIMAL(10,4) NOT NULL,
+  reporting_consistency DECIMAL(10,4) NOT NULL,
+  impact_score DECIMAL(10,4) NOT NULL,
+
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (sme_id) REFERENCES smes(id),
+  INDEX (sme_id)
+);
+
+ALTER TABLE sme_scores MODIFY score DECIMAL(5,2) NOT NULL;
+INSERT INTO sme_financial_summary
+(sme_id, revenue, expenses, debt, revenue_growth, reporting_consistency, impact_score)
+VALUES
+(1, 1200000, 800000, 200000, 0.12, 0.90, 0.70);
+SELECT id, sme_id, score, risk_level, model_version, created_at
+FROM sme_scores
+WHERE sme_id = 1
+ORDER BY created_at DESC
+LIMIT 5;
