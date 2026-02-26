@@ -1,206 +1,241 @@
-Partnex Backend API
+# Partnex Backend API
 
-Partnex Backend is a role-based fintech REST API designed to support SME credibility scoring and investor decision-making.
+## Overview
 
-Built as part of a Capstone Project aligned with SDG 17 – Partnerships for the Goals.
+Partnex is a FinTech platform built under SDG 17 (Partnerships for the Goals) to enable transparent funding between SMEs and Investors.
 
+This backend provides:
 
-Overview
+- Role-based authentication (SME, Investor, Admin)
+- SME profile management
+- Investor profile management
+- Statement of Account (SOA) uploads
+- AI-powered SME credibility scoring
+- Investor access to SME credibility data
+- Secure deployment with environment configuration
 
-The system enables:
+Production URL:
+https://partnex-backend.onrender.com
 
-SMEs to register and create business profiles
+---
 
-SMEs to upload financial statements (SOA)
+## Tech Stack
 
-Automated credibility scoring
+- Node.js
+- Express.js
+- MySQL (AWS RDS)
+- JWT Authentication
+- Axios (AI integration)
+- Multer (file uploads)
+- Render (deployment)
 
-Investors to securely view SMEs and their risk levels
+AI Service:
+- FastAPI
+- Scikit-learn model
+- Hosted separately on Render
 
-Role-based access control (RBAC) enforcement
+---
 
-The architecture is designed to support seamless integration with an external AI scoring microservice.
+## Architecture
 
+Frontend (future)
+        ↓
+Node Backend (Render)
+        ↓
+AWS RDS (Database)
+        ↓
+AI Scoring Service (FastAPI on Render)
 
-Tech Stack
+The backend communicates with the AI service via HTTP using Axios.
 
-Node.js
+---
 
-Express
+## Environment Variables
 
-MySQL (mysql2/promise)
-
-JWT Authentication
-
-Multer (File Uploads)
-
-Axios (AI integration ready)
-
-Helmet & Rate Limiting (Security)
-
-
- User Roles
-Role	Capabilities
-SME	Create profile, upload statement, run scoring
-Investor	View SMEs and credibility scores
-Admin	Reserved for system oversight
-
-Project Structure
-partnex_backend/
-│
-├── database/
-│   └── schema.sql
-│
-├── src/
-│   ├── config/
-│   ├── controllers/
-│   ├── middleware/
-│   ├── routes/
-│   ├── services/
-│   └── app.js
-│
-├── server.js
-├── package.json
-├── .gitignore
-└── README.md
+The following environment variables must be configured:
 
 
-Setup Instructions
+DB_HOST=
+DB_PORT=3306
+DB_USER=
+DB_PASS=
+DB_NAME=
 
-1️⃣ Clone Repository
-git clone https://github.com/BEChukwunwike/partnex_backend.git
-cd partnex_backend
-
-2️⃣ Install Dependencies
-npm install
-
-3️⃣ Create Environment File
-
-Create a .env file in the root directory:
-
-PORT=3000
-JWT_SECRET=your_secret_here
+JWT_SECRET=
 JWT_EXPIRES_IN=1d
 
-DB_HOST=localhost
-DB_USER=root
-DB_PASSWORD=yourpassword
-DB_NAME=partnex_db
+AI_SERVICE_URL=
+AI_TIMEOUT_MS=5000
+AI_MODE=external # external or fallback
 
 
-4️⃣ Set Up Database
+---
 
-Run the SQL script located at:
+## Database Schema
 
-database/schema.sql
+### Users
+- id
+- email
+- password_hash
+- role (sme, investor, admin)
 
-5️⃣ Start Development Server
-npm run dev
+### SMEs
+- owner_user_id
+- business_name
+- industry
+- location
+- years_of_operation
+- employees
 
-Server runs on:
+### Investors
+- owner_user_id
+- full_name
+- organization
+- location
 
-http://localhost:3000
+### SOA Uploads
+- sme_id
+- file_name
+- file_path
+- file_type
+- status
+
+### SME Scores
+- sme_id
+- score
+- risk_level
+- explanation_json
+- model_version
+- created_at
+
+### SME Financial Summary (AI Inputs)
+- revenue
+- expenses
+- debt
+- revenue_growth
+- reporting_consistency
+- impact_score
+
+---
+
+## Authentication
+
+All protected routes require:
 
 
-🧪 MVP Flow (API Demo)
-🔹 1. Register SME
+Authorization: Bearer <JWT_TOKEN>
 
-POST /api/auth/register
 
+---
+
+## API Endpoints
+
+### Health Check
+
+GET /
+
+---
+
+### Register
+
+POST /auth/register
+
+```json
 {
-  "email": "sme@test.com",
-  "password": "Password123!",
+  "email": "user@test.com",
+  "password": "Password123",
   "role": "sme"
 }
-🔹 2. Login
+Login
 
-POST /api/auth/login
+POST /auth/login
 
-Returns JWT token.
+Create SME Profile
 
-🔹 3. Create SME Profile
+POST /sme/profile
 
-POST /api/sme/profile
+Requires SME role.
 
-Authorization: Bearer Token
-
-{
-  "business_name": "Blessing Foods Ltd",
-  "industry": "Agriculture",
-  "location": "Abuja",
-  "years_of_operation": 3,
-  "employees": 12
-}
-🔹 4. Upload Statement of Account
+Upload Statement of Account
 
 POST /api/soa/upload
 
-Body: form-data
+Form-data:
 
-Key: file
+file
 
-Authorization required
+Add Financial Summary (AI Input)
 
-🔹 5. Run Credibility Scoring
+POST /api/sme/financial-summary
+
+{
+  "revenue": 1200000,
+  "expenses": 800000,
+  "debt": 200000,
+  "revenue_growth": 0.12,
+  "reporting_consistency": 0.9,
+  "impact_score": 0.7
+}
+Run Credibility Score
 
 POST /api/score/run
 
 Returns:
 
 {
-  "score": 63,
-  "risk_level": "MEDIUM",
-  "explanation": { }
+  "sme_id": 1,
+  "score": 78,
+  "risk_level": "LOW",
+  "model_version": "ai-v1"
 }
-🔹 6. Investor View SMEs
+
+If AI service fails, system falls back to rule-based scoring.
+
+Investor View SMEs
 
 GET /api/investor/smes
 
-Returns list of SMEs with latest score.
+Returns latest score per SME.
 
+AI Integration
 
-🧠 Scoring Engine
+The backend integrates with an external AI scoring microservice.
 
-The scoring engine:
+When AI_MODE=external:
 
-Supports AI microservice integration via REST
+Backend fetches latest financial summary.
 
-Stores model version
+Sends data to AI service.
 
-Persists explanation metadata
+Receives:
 
-Includes fallback scoring logic for system resilience
+credibility_score
 
+credible_class
 
-🛡️ Security Features
+Saves result in sme_scores.
 
-JWT Authentication
+If AI service is unavailable, fallback scoring logic is used.
 
-Role-Based Access Control (RBAC)
+Deployment
 
-Rate Limiting
+Backend hosted on Render:
+https://partnex-backend.onrender.com
 
-Helmet Security Headers
+Database hosted on AWS RDS.
 
-Parameterized SQL Queries
+AI service hosted separately on Render.
 
-Controlled File Upload Handling
+Security
 
+Passwords hashed using bcrypt
 
-📈 Future Enhancements
+JWT authentication
 
-Full AI model integration
+Helmet for HTTP security
 
-Financial statement parsing
+Express rate limiting
 
-Audit logging
+Role-based authorization middleware
 
-Admin dashboard
-
-Advanced risk analytics
-
-
-Author
-
-Blessing Chukwunwike
-Backend Development – Partnex Capstone Project
+Environment-based configuration
