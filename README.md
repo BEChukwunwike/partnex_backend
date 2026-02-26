@@ -131,7 +131,7 @@ GET /
 
 ### Register
 
-POST /auth/register
+POST api/auth/register
 
 ```json
 {
@@ -141,11 +141,11 @@ POST /auth/register
 }
 Login
 
-POST /auth/login
+POST api/auth/login
 
 Create SME Profile
 
-POST /sme/profile
+POST api/sme/profile
 
 Requires SME role.
 
