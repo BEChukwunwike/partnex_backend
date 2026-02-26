@@ -17,7 +17,6 @@ This backend provides:
 Production URL:
 https://partnex-backend.onrender.com
 
----
 
 ## Tech Stack
 
@@ -34,7 +33,6 @@ AI Service:
 - Scikit-learn model
 - Hosted separately on Render
 
----
 
 ## Architecture
 
@@ -48,7 +46,6 @@ AI Scoring Service (FastAPI on Render)
 
 The backend communicates with the AI service via HTTP using Axios.
 
----
 
 ## Environment Variables
 
@@ -69,7 +66,6 @@ AI_TIMEOUT_MS=5000
 AI_MODE=external # external or fallback
 
 
----
 
 ## Database Schema
 
@@ -116,7 +112,6 @@ AI_MODE=external # external or fallback
 - reporting_consistency
 - impact_score
 
----
 
 ## Authentication
 
@@ -126,7 +121,6 @@ All protected routes require:
 Authorization: Bearer <JWT_TOKEN>
 
 
----
 
 ## API Endpoints
 
@@ -134,7 +128,6 @@ Authorization: Bearer <JWT_TOKEN>
 
 GET /
 
----
 
 ### Register
 
