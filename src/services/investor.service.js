@@ -8,10 +8,10 @@ const listSmesWithScores = async (query) => {
     SELECT 
       s.id AS sme_id,
       s.business_name,
-      s.industry,
+      s.industry_sector AS industry,
       s.location,
       s.years_of_operation,
-      s.employees,
+      s.number_of_employees AS employees,
       sc.score,
       sc.risk_level,
       sc.created_at AS scored_at
@@ -34,12 +34,14 @@ const listSmesWithScores = async (query) => {
     sql += " AND (sc.score IS NOT NULL AND sc.score >= ?)";
     params.push(minScore);
   }
+
   if (risk) {
     sql += " AND sc.risk_level = ?";
     params.push(risk);
   }
 
-  sql += " ORDER BY sc.score DESC";
+  // Better ordering: put unscored SMEs last
+  sql += " ORDER BY (sc.score IS NULL), sc.score DESC";
 
   const [rows] = await db.execute(sql, params);
   return { smes: rows };
