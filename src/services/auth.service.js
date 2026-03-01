@@ -2,6 +2,30 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const db = require("../config/db");
 
+const normalizeEmail = (email) => String(email || "").trim().toLowerCase();
+
+const isValidEmail = (email) =>
+  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+const validatePassword = (password) => {
+  if (typeof password !== "string") return "Password must be a string";
+
+  const p = password.trim();
+  if (p.length === 0) return "Password cannot be empty or spaces";
+  if (p.length < 8) return "Password must be at least 8 characters";
+  if (p.length > 72) return "Password must be 72 characters or less";
+
+  if (!/[A-Z]/.test(p)) return "Password must include at least 1 uppercase letter";
+  if (!/[a-z]/.test(p)) return "Password must include at least 1 lowercase letter";
+  if (!/[0-9]/.test(p)) return "Password must include at least 1 number";
+  if (!/[^A-Za-z0-9]/.test(p)) return "Password must include at least 1 symbol";
+
+  // blocks: 111111111, aaaaaaaa, --------, @@@@@@@@
+  if (/^(.)\1+$/.test(p)) return "Password is too weak";
+
+  return null;
+};
+
 const signToken = (user) => {
   return jwt.sign(
     { id: user.id, email: user.email, role: user.role },
@@ -11,9 +35,16 @@ const signToken = (user) => {
 };
 
 const registerUser = async ({ email, password, role }) => {
-  if (!email || !password || !role) {
-    throw { statusCode: 400, message: "email, password, role are required" };
-  }
+  email = normalizeEmail(email);
+  role = String(role || "").trim().toLowerCase();
+
+  if (!email) throw { statusCode: 400, message: "Email is required" };
+  if (!isValidEmail(email)) throw { statusCode: 400, message: "Invalid email address" };
+
+  const passwordError = validatePassword(password);
+  if (passwordError) throw { statusCode: 400, message: passwordError };
+
+  if (!role) throw { statusCode: 400, message: "Role is required" };
 
   const allowedRoles = ["sme", "investor", "admin"];
   if (!allowedRoles.includes(role)) {
@@ -25,7 +56,7 @@ const registerUser = async ({ email, password, role }) => {
     throw { statusCode: 409, message: "Email already in use" };
   }
 
-  const password_hash = await bcrypt.hash(password, 12);
+  const password_hash = await bcrypt.hash(password.trim(), 12);
 
   const [result] = await db.execute(
     "INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?)",
@@ -39,8 +70,13 @@ const registerUser = async ({ email, password, role }) => {
 };
 
 const loginUser = async ({ email, password }) => {
-  if (!email || !password) {
-    throw { statusCode: 400, message: "email and password are required" };
+  email = normalizeEmail(email);
+
+  if (!email) throw { statusCode: 400, message: "Email is required" };
+  if (!isValidEmail(email)) throw { statusCode: 400, message: "Invalid email address" };
+
+  if (typeof password !== "string" || password.trim().length === 0) {
+    throw { statusCode: 400, message: "Password is required" };
   }
 
   const [rows] = await db.execute(
@@ -54,7 +90,7 @@ const loginUser = async ({ email, password }) => {
 
   const userRow = rows[0];
 
-  const ok = await bcrypt.compare(password, userRow.password_hash);
+  const ok = await bcrypt.compare(password.trim(), userRow.password_hash);
   if (!ok) {
     throw { statusCode: 401, message: "Invalid credentials" };
   }
