@@ -53,7 +53,7 @@ const registerUser = async ({ email, password, role }) => {
 
   const [existing] = await db.execute("SELECT id FROM users WHERE email = ?", [email]);
   if (existing.length > 0) {
-    throw { statusCode: 409, message: "Email already in use" };
+    throw { statusCode: 409, message: "Unable to register with provided details"};
   }
 
   const password_hash = await bcrypt.hash(password.trim(), 12);

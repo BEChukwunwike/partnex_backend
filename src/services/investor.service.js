@@ -1,8 +1,41 @@
 const db = require("../config/db");
 
 const listSmesWithScores = async (query) => {
-  const minScore = query.minScore ? Number(query.minScore) : null;
-  const risk = query.risk || null;
+    // Validate minScore
+let minScore = null;
+if (query.minScore !== undefined) {
+  const n = Number(query.minScore);
+  if (!Number.isFinite(n)) {
+    throw { statusCode: 400, message: "minScore must be a valid number" };
+  }
+  minScore = n;
+}
+
+ // Validate risk
+  let risk = null;
+  if (query.risk) {
+    const r = String(query.risk).trim().toUpperCase();
+    const allowed = new Set(["LOW", "MEDIUM", "HIGH"]);
+    if (!allowed.has(r)) {
+      throw { statusCode: 400, message: "risk must be LOW, MEDIUM, or HIGH" };
+    }
+    risk = r;
+  }
+
+   // Pagination
+  const rawLimit = Number(query.limit ?? 50);
+  const rawOffset = Number(query.offset ?? 0);
+
+  if (!Number.isFinite(rawLimit) || rawLimit < 1) {
+    throw { statusCode: 400, message: "limit must be a positive number" };
+  }
+
+  if (!Number.isFinite(rawOffset) || rawOffset < 0) {
+    throw { statusCode: 400, message: "offset must be zero or a positive number" };
+  }
+
+  const limit = Math.min(rawLimit, 100);
+  const offset = rawOffset;
 
   let sql = `
     SELECT 
@@ -34,17 +67,27 @@ const listSmesWithScores = async (query) => {
     sql += " AND (sc.score IS NOT NULL AND sc.score >= ?)";
     params.push(minScore);
   }
+  
 
   if (risk) {
     sql += " AND sc.risk_level = ?";
     params.push(risk);
   }
 
-  // Better ordering: put unscored SMEs last
+ // Unscored SMEs last, highest scores first
   sql += " ORDER BY (sc.score IS NULL), sc.score DESC";
+  sql += " LIMIT ? OFFSET ?";
+  params.push(limit, offset);
 
   const [rows] = await db.execute(sql, params);
-  return { smes: rows };
+  return {
+  smes: rows,
+  meta: {
+    limit,
+    offset,
+    count: rows.length
+  }
+};
 };
 
 module.exports = { listSmesWithScores };
