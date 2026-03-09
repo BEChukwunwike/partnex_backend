@@ -56,16 +56,12 @@ const buildAiPayloadFromSme = (sme) => {
   const expenses = Number(sme.monthly_expenses); // keep as monthly (matches your PRD)
   const debt = Number(sme.existing_liabilities);
 
-  // Impact score: not in PRD 6.2, so we default for MVP
-  const impact_score = 0.7;
-
   return {
     revenue: revenueLatest,
     expenses,
     debt,
     revenue_growth: Number.isFinite(revenue_growth) ? revenue_growth : 0,
     reporting_consistency,
-    impact_score
   };
 };
 
