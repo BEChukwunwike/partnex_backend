@@ -18,4 +18,14 @@ const getMyProfile = async (req, res) => {
   }
 };
 
-module.exports = { createProfile, getMyProfile };
+const updateProfile = async (req, res) => {
+  try {
+    const result = await smeService.updateProfile(req.user.id, req.body);
+    return res.json(result);
+  } catch (err) {
+    return res.status(err.statusCode || 500).json({ message: err.message });
+  }
+};
+
+
+module.exports = { createProfile, getMyProfile, updateProfile };

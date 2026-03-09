@@ -137,13 +137,13 @@ const runScoreForSmeUser = async (userId) => {
           final = {
             score,
             risk_level,
-            explanation: {
+            explanation: resp?.data?.explanation || {
               source: "ai-service",
               credible_class: typeof credibleClass === "number" ? credibleClass : Number(credibleClass),
               model_inputs: payload,
-              note: "Score generated via external AI scoring service using PRD 6.2 profile inputs"
+              note: "Score generated via external AI scoring service"
             },
-            model_version: "ai-v1"
+            model_version: "ai-v2.2"
           };
         } catch (err) {
           final = computeFallbackScore(sme);

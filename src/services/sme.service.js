@@ -23,7 +23,7 @@ const createProfile = async (userId, payload) => {
     repayment_history
   } = payload;
 
-  // PRD 6.2 required fields
+  // Validate required fields and types
   const missing = [];
   const required = {
     business_name,
@@ -47,6 +47,37 @@ const createProfile = async (userId, payload) => {
   if (missing.length > 0) {
     throw { statusCode: 400, message: `Missing required SME fields: ${missing.join(", ")}` };
   }
+
+  // Validate numeric fields
+const numericFields = {
+  years_of_operation,
+  number_of_employees,
+  annual_revenue_year_1,
+  annual_revenue_amount_1,
+  annual_revenue_year_2,
+  annual_revenue_amount_2,
+  monthly_expenses,
+  existing_liabilities
+};
+
+for (const [key, value] of Object.entries(numericFields)) {
+  if (!Number.isFinite(Number(value))) {
+    throw { statusCode: 400, message: `${key} must be a valid number` };
+  }
+}
+
+// Optional numeric fields
+if (annual_revenue_year_3 != null && !Number.isFinite(Number(annual_revenue_year_3))) {
+  throw { statusCode: 400, message: "annual_revenue_year_3 must be a valid number" };
+}
+
+if (annual_revenue_amount_3 != null && !Number.isFinite(Number(annual_revenue_amount_3))) {
+  throw { statusCode: 400, message: "annual_revenue_amount_3 must be a valid number" };
+}
+
+if (monthly_revenue != null && !Number.isFinite(Number(monthly_revenue))) {
+  throw { statusCode: 400, message: "monthly_revenue must be a valid number" };
+}
 
   // If year 3 is used, both year and amount must be provided
   const y3Provided = annual_revenue_year_3 != null || annual_revenue_amount_3 != null;
@@ -130,10 +161,136 @@ const createProfile = async (userId, payload) => {
   };
 };
 
+const updateProfile = async (userId, payload) => {
+  const [existingRows] = await db.execute(
+    "SELECT id FROM smes WHERE owner_user_id = ?",
+    [userId]
+  );
+
+  if (existingRows.length === 0) {
+    throw { statusCode: 404, message: "SME profile not found" };
+  }
+
+  const smeId = existingRows[0].id;
+
+  const allowedFields = {
+    business_name: payload.business_name,
+    industry_sector: payload.industry_sector,
+    location: payload.location,
+    years_of_operation: payload.years_of_operation,
+    number_of_employees: payload.number_of_employees,
+
+    annual_revenue_year_1: payload.annual_revenue_year_1,
+    annual_revenue_amount_1: payload.annual_revenue_amount_1,
+    annual_revenue_year_2: payload.annual_revenue_year_2,
+    annual_revenue_amount_2: payload.annual_revenue_amount_2,
+    annual_revenue_year_3: payload.annual_revenue_year_3,
+    annual_revenue_amount_3: payload.annual_revenue_amount_3,
+
+    monthly_revenue: payload.monthly_revenue,
+    monthly_expenses: payload.monthly_expenses,
+    existing_liabilities: payload.existing_liabilities,
+
+    prior_funding_history: payload.prior_funding_history,
+    repayment_history: payload.repayment_history
+  };
+
+  // Validate numeric fields only if provided
+  const numericFields = [
+    "years_of_operation",
+    "number_of_employees",
+    "annual_revenue_year_1",
+    "annual_revenue_amount_1",
+    "annual_revenue_year_2",
+    "annual_revenue_amount_2",
+    "annual_revenue_year_3",
+    "annual_revenue_amount_3",
+    "monthly_revenue",
+    "monthly_expenses",
+    "existing_liabilities"
+  ];
+
+  for (const field of numericFields) {
+    if (allowedFields[field] !== undefined && allowedFields[field] !== null) {
+      if (!Number.isFinite(Number(allowedFields[field]))) {
+        throw { statusCode: 400, message: `${field} must be a valid number` };
+      }
+    }
+  }
+
+  // If year 3 is being updated, require both fields together when either is present
+  const year3Touched =
+    payload.annual_revenue_year_3 !== undefined ||
+    payload.annual_revenue_amount_3 !== undefined;
+
+  if (year3Touched) {
+    const year3 = payload.annual_revenue_year_3;
+    const amount3 = payload.annual_revenue_amount_3;
+
+    if (
+      (year3 === undefined || year3 === null) &&
+      (amount3 !== undefined && amount3 !== null)
+    ) {
+      throw {
+        statusCode: 400,
+        message: "annual_revenue_year_3 and annual_revenue_amount_3 must be provided together"
+      };
+    }
+
+    if (
+      (amount3 === undefined || amount3 === null) &&
+      (year3 !== undefined && year3 !== null)
+    ) {
+      throw {
+        statusCode: 400,
+        message: "annual_revenue_year_3 and annual_revenue_amount_3 must be provided together"
+      };
+    }
+  }
+
+  const updates = [];
+  const values = [];
+
+  for (const [key, value] of Object.entries(allowedFields)) {
+    if (value !== undefined) {
+      updates.push(`${key} = ?`);
+
+      if (
+        numericFields.includes(key) &&
+        value !== null
+      ) {
+        values.push(Number(value));
+      } else {
+        values.push(value);
+      }
+    }
+  }
+
+  if (updates.length === 0) {
+    throw { statusCode: 400, message: "No fields provided for update" };
+  }
+
+  values.push(smeId);
+
+  await db.execute(
+    `UPDATE smes
+     SET ${updates.join(", ")}
+     WHERE id = ?`,
+    values
+  );
+
+  const [rows] = await db.execute("SELECT * FROM smes WHERE id = ?", [smeId]);
+
+  return {
+    message: "SME profile updated successfully",
+    sme: rows[0]
+  };
+};
+
 const getMyProfile = async (userId) => {
   const [rows] = await db.execute("SELECT * FROM smes WHERE owner_user_id = ?", [userId]);
   if (rows.length === 0) throw { statusCode: 404, message: "SME profile not found" };
   return { sme: rows[0] };
 };
 
-module.exports = { createProfile, getMyProfile };
+module.exports = { createProfile, getMyProfile, updateProfile };
