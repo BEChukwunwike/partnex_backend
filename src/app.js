@@ -32,7 +32,6 @@ app.get("/", (req, res) => res.json({ ok: true, name: "partnex-backend" }));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/sme", smeRoutes);
-app.use("/api/soa", require("./routes/soa.route"));
 app.use("/api/score", require("./routes/scoring.route"));
 app.use("/api/investor", require("./routes/investor.route"));
 
