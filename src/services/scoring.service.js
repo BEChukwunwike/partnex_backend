@@ -108,7 +108,7 @@ const runScoreForSmeUser = async (userId) => {
 
       // Basic validation to avoid sending junk to AI service
       const missing = [];
-      ["revenue", "expenses", "debt", "revenue_growth", "reporting_consistency", "impact_score"].forEach((k) => {
+      ["revenue", "expenses", "debt", "revenue_growth", "reporting_consistency"].forEach((k) => {
         if (payload[k] == null || Number.isNaN(Number(payload[k]))) missing.push(k);
       });
 
