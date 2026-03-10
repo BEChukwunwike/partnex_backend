@@ -62,6 +62,8 @@ const buildAiPayloadFromSme = (sme) => {
     debt,
     revenue_growth: Number.isFinite(revenue_growth) ? revenue_growth : 0,
     reporting_consistency,
+    number_of_employees: sme.number_of_employees, 
+    industry_sector: sme.industry_sector
   };
 };
 
@@ -133,6 +135,7 @@ const runScoreForSmeUser = async (userId) => {
           final = {
             score,
             risk_level,
+            impact_score: resp?.data?.impact_score || 0.7,
             explanation: resp?.data?.explanation || {
               source: "ai-service",
               credible_class: typeof credibleClass === "number" ? credibleClass : Number(credibleClass),
@@ -165,6 +168,7 @@ const runScoreForSmeUser = async (userId) => {
     score_id: result.insertId,
     score: final.score,
     risk_level: final.risk_level,
+    impact_score: final.impact_score,
     explanation: final.explanation,
     model_version: final.model_version
   };
