@@ -1,5 +1,66 @@
 const db = require("../config/db");
 
+// 1. CREATE INVESTOR PROFILE
+const createProfile = async (userId, payload) => {
+  const { 
+    full_name, 
+    organization, 
+    location, 
+    investor_type, 
+    preferred_sectors, 
+    typical_ticket_size 
+  } = payload;
+
+  if (!full_name) {
+    throw { statusCode: 400, message: "full_name is required" };
+  }
+
+  // Prevent duplicate profiles
+  const [existing] = await db.execute("SELECT id FROM investors WHERE owner_user_id = ?", [userId]);
+  if (existing.length > 0) {
+    throw { statusCode: 409, message: "Investor profile already exists for this user" };
+  }
+
+  // Safely stringify the sectors array for the MySQL JSON column
+  const sectorsJson = Array.isArray(preferred_sectors) 
+    ? JSON.stringify(preferred_sectors) 
+    : null;
+
+  const [result] = await db.execute(
+    `INSERT INTO investors (
+      owner_user_id, full_name, organization, location, 
+      investor_type, preferred_sectors, typical_ticket_size
+    ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [
+      userId, 
+      full_name, 
+      organization || null, 
+      location || null, 
+      investor_type || null, 
+      sectorsJson, 
+      typical_ticket_size || null
+    ]
+  );
+
+  return {
+    message: "Investor profile created successfully",
+    investor: {
+      id: result.insertId,
+      owner_user_id: userId,
+      full_name,
+      investor_type,
+      preferred_sectors
+    }
+  };
+};
+
+// 2. GET MY INVESTOR PROFILE
+const getMyProfile = async (userId) => {
+  const [rows] = await db.execute("SELECT * FROM investors WHERE owner_user_id = ?", [userId]);
+  if (rows.length === 0) throw { statusCode: 404, message: "Investor profile not found" };
+  return { investor: rows[0] };
+};
+
 const listSmesWithScores = async (query) => {
     // Validate minScore
 let minScore = null;
@@ -90,4 +151,4 @@ if (query.minScore !== undefined) {
 };
 };
 
-module.exports = { listSmesWithScores };
+module.exports = { createProfile, getMyProfile, listSmesWithScores };
